@@ -93,7 +93,6 @@ def plan_trajectory(way_pts):
             yaw = yaw + math.pi
         elif (delta_y < 0 and delta_x < 0):
             yaw = yaw - math.pi
-            
 
         quat = quaternion_from_euler(0.0, 0.0, yaw)    # roll, pitch, yaw
 
