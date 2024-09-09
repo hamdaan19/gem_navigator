@@ -7,11 +7,23 @@ import do_mpc
 from casadi import *
 
 import rospy
-from nav_msgs.msg import Path
+import rospkg
+from nav_msgs.msg import Path, Odometry
 from tf.transformations import euler_from_quaternion
 
 import math
-    
+
+from ackermann_msgs.msg import AckermannDrive
+
+rp = rospkg.RosPack()
+sys.path.insert(1, rp.get_path("gem_navigator"))
+
+from src.callbacks import Callback
+
+cb = Callback()
+
+T_STEP = 0.5
+N_HORIZON = 20
 
 class MPC_Controller(): 
     def __init__(self, path, n_horizon=20, t_step=0.1):
@@ -27,7 +39,7 @@ class MPC_Controller():
         # Placeholder for MPC controller
         self.mpc = None
 
-        self.wheel_base = 1.5
+        self.wheel_base = 1.75
         self.acceleration = 2.0
 
         self.configure_controller()
@@ -80,7 +92,7 @@ class MPC_Controller():
         self.model.set_rhs('pos_x', vel*cos(theta))
         self.model.set_rhs('pos_y', vel*sin(theta))
         self.model.set_rhs('theta', vel*tan(alpha)/self.wheel_base)
-        self.model.set_rhs('vel', throttle*self.acceleration)
+        self.model.set_rhs('vel', throttle)
 
         self.model.setup()
 
@@ -94,16 +106,16 @@ class MPC_Controller():
         setup_mpc = {
             'n_horizon': self.n_horizon,
             't_step': self.t_step,
-            'n_robust': 1,
+            'n_robust': 0,
             'store_full_solution': True,
         }
         self.mpc.set_param(**setup_mpc)
 
         # Setting the objective function
-        lagrange_term = (self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + (self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 + (self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2 
-        meyer_term = lagrange_term
+        lagrange_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 
+        meyer_term = 1e-3*(self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2
         self.mpc.set_rterm (
-            alpha=1e-2,
+            alpha=1,
             throttle=1e-2
         )
         self.mpc.set_objective(lterm=lagrange_term, mterm=meyer_term)
@@ -115,13 +127,13 @@ class MPC_Controller():
         # Setting the constraints for the objective function
         # Velocity limits
         self.mpc.bounds['lower','_x', 'vel'] = 0.0
-        self.mpc.bounds['upper','_x', 'vel'] = 10.0
+        self.mpc.bounds['upper','_x', 'vel'] = 5.0
         # Throttle limits
-        self.mpc.bounds['lower','_u', 'throttle'] = -1.0
-        self.mpc.bounds['upper','_u', 'throttle'] = 1.0
+        self.mpc.bounds['lower','_u', 'throttle'] = -2.0
+        self.mpc.bounds['upper','_u', 'throttle'] = 2.0
         # Steering angle limits
-        self.mpc.bounds['lower','_u', 'alpha'] = -math.pi/4
-        self.mpc.bounds['upper','_u', 'alpha'] = math.pi/4
+        self.mpc.bounds['lower','_u', 'alpha'] = -math.pi/16
+        self.mpc.bounds['upper','_u', 'alpha'] = math.pi/16
         
         self.mpc.setup()
 
@@ -137,23 +149,42 @@ def simulator(u, x, t_step=0.1):
     return x_next
 
 def callback(data):
-    mpc = MPC_Controller(data)
+    mpc = MPC_Controller(data, n_horizon=N_HORIZON, t_step=T_STEP)
     # pos x, pos y, velocity, theta (yaw)
-    x0 = np.array([0.0, 0.0, 0.0, 0.0]).reshape(-1,1)
-    print(x0, x0.shape)
+    x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
     mpc.mpc.x0 = x0
 
     mpc.mpc.u0['alpha'] = 0.0 
-    mpc.mpc.u0['throttle'] = 0.0 - 1e-2
-    print(mpc.mpc.x0.labels())
-    print(mpc.mpc.x0['vel'])
+    mpc.mpc.u0['throttle'] = 0.0
+
     mpc.mpc.set_initial_guess()
-    u0 = mpc.mpc.make_step(x0)
+
+    n_reference_points = len(data.poses)
     
-    for i in range(124): 
+    rate = rospy.Rate(int(10/T_STEP))
+    for i in range(n_reference_points - N_HORIZON): 
+        x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
         u0 = mpc.mpc.make_step(x0)
-        x0 = simulator(u0, x0)
-        print("x0: ", x0)
+        # x0 = simulator(u0, x0)
+
+        j = 0
+        v_new = float(x0[2] + u0[1]*T_STEP)
+        while ((not rospy.is_shutdown()) and j < 10): 
+            j += 1
+
+            # Defining ackermann_msg
+            ackermann_msg = AckermannDrive()
+            ackermann_msg.steering_angle_velocity = 0.0
+            ackermann_msg.acceleration            = float(u0[1])
+            ackermann_msg.jerk                    = 0.0
+            ackermann_msg.speed                   = v_new 
+            ackermann_msg.steering_angle          = float(u0[0])
+
+            # publishing
+            ackermann_pub.publish(ackermann_msg)
+
+            # Letting time elapse
+            rate.sleep()
 
     print("exiting...")
 
@@ -163,5 +194,7 @@ if __name__ == "__main__":
     rospy.init_node("mpc_controller_node", anonymous=False)
 
     reference_path_sub = rospy.Subscriber("/reference_path", Path, callback, queue_size=10)
+    state_sub = rospy.Subscriber("/gem/base_footprint/odom", Odometry, cb.state_callback, queue_size=10)
+    ackermann_pub = rospy.Publisher('/gem/ackermann_cmd', AckermannDrive, queue_size=1)
 
     rospy.spin()

@@ -9,9 +9,18 @@ import math
 
 import rospy
 from geometry_msgs.msg import PoseArray, PoseStamped
-from nav_msgs.msg import Path
+from nav_msgs.msg import Path, Odometry
 
 from tf.transformations import quaternion_from_euler
+import rospkg 
+import sys
+
+rp = rospkg.RosPack()
+sys.path.insert(1, rp.get_path("gem_navigator"))
+
+from src.callbacks import Callback
+
+cb = Callback()
 
 
 def plan_trajectory(way_pts):
@@ -41,7 +50,7 @@ def plan_trajectory(way_pts):
         i += 1
 
     ################################################################################
-    vel_limits, accel_limits = np.array([7, 7]), np.r_[1.0,1.0]
+    vel_limits, accel_limits = np.array([2, 2]), np.r_[1.0,1.0]
     path_scalars = np.asarray(p_scalars)
 
     path = ta.SplineInterpolator(path_scalars, way_pts, bc_type="clamped")
@@ -75,7 +84,7 @@ def plan_trajectory(way_pts):
     qds_sample = jnt_traj(ts_sample, 1)
     qdds_sample = jnt_traj(ts_sample, 2)
 
-    time_step = 0.1
+    time_step = 0.5
 
     robot_path = Path()
     robot_path.header.stamp = rospy.Time.now()
@@ -118,6 +127,7 @@ def callback(data):
     waypoints = np.zeros(shape=(n_poses, 2))
   
     for i in range(n_poses): 
+        # waypoints[i] = [poses[i].position.x + cb.state_position_x, poses[i].position.y + cb.state_position_y]
         waypoints[i] = [poses[i].position.x, poses[i].position.y]
 
     plan_trajectory(waypoints)
@@ -128,6 +138,7 @@ if __name__ == "__main__":
     rospy.init_node("trajectory_planner_node", anonymous=False)
 
     waypoints_sub = rospy.Subscriber("/path_waypoints", PoseArray, callback, queue_size=10)
+    state_sub = rospy.Subscriber("/gem/base_footprint/odom", Odometry, cb.state_callback, queue_size=10)
     reference_path_pub = rospy.Publisher("/reference_path", Path, queue_size=5)
 
     rospy.spin()
