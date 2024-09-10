@@ -22,6 +22,8 @@ from src.callbacks import Callback
 
 cb = Callback()
 
+# Global Parameters
+time_step = rospy.get_param("/gem_navigator/t_step")
 
 def plan_trajectory(way_pts):
 
@@ -50,7 +52,7 @@ def plan_trajectory(way_pts):
         i += 1
 
     ################################################################################
-    vel_limits, accel_limits = np.array([2, 2]), np.r_[1.0,1.0]
+    vel_limits, accel_limits = np.array([3, 3]), np.r_[1.5,1.5]
     path_scalars = np.asarray(p_scalars)
 
     path = ta.SplineInterpolator(path_scalars, way_pts, bc_type="clamped")
@@ -84,7 +86,7 @@ def plan_trajectory(way_pts):
     qds_sample = jnt_traj(ts_sample, 1)
     qdds_sample = jnt_traj(ts_sample, 2)
 
-    time_step = 0.5
+    # time_step = 0.5
 
     robot_path = Path()
     robot_path.header.stamp = rospy.Time.now()

@@ -22,8 +22,9 @@ from src.callbacks import Callback
 
 cb = Callback()
 
-T_STEP = 0.5
-N_HORIZON = 20
+T_STEP = rospy.get_param("/gem_navigator/t_step")
+N_HORIZON = rospy.get_param("/gem_navigator/n_horizon")
+MAX_VEL = rospy.get_param("/gem_navigator/max_velocity")
 
 class MPC_Controller(): 
     def __init__(self, path, n_horizon=20, t_step=0.1):
@@ -127,7 +128,7 @@ class MPC_Controller():
         # Setting the constraints for the objective function
         # Velocity limits
         self.mpc.bounds['lower','_x', 'vel'] = 0.0
-        self.mpc.bounds['upper','_x', 'vel'] = 5.0
+        self.mpc.bounds['upper','_x', 'vel'] = MAX_VEL
         # Throttle limits
         self.mpc.bounds['lower','_u', 'throttle'] = -2.0
         self.mpc.bounds['upper','_u', 'throttle'] = 2.0
