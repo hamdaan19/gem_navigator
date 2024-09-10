@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Launching GEM Simulation -->
+    <include file="$(find gem_gazebo)/launch/gem_gazebo_rviz.launch">
+        <arg name="velodyne_points" value="true"/>
+    </include>
+
+    <group ns="gem_navigator">
+
+        <!-- Loading parameters -->
+        <rosparam file="$(find gem_navigator)/parameters.yaml"/>
+
+        <!-- Trajectory Planner node for minimum-time trajectories -->
+        <node name="trajectory_planner_node" pkg="gem_navigator" type="time_optimal_trajectory_planner.py"/> 
+
+        <!-- MPC controller node for path tracking -->
+        <node name="mpc_controller_node" pkg="gem_navigator" type="mpc_controller.py"/> 
+
+    </group> 
+
+</launch>
