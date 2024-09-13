@@ -6,6 +6,8 @@
         <arg name="velodyne_points" value="true"/>
     </include>
 
+    <node name="velodyne_link" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 /velodyne gem/velodyne 1000"/>
+
     <group ns="gem_navigator">
 
         <!-- Loading parameters -->
@@ -15,7 +17,10 @@
         <node name="trajectory_planner_node" pkg="gem_navigator" type="time_optimal_trajectory_planner.py"/> 
 
         <!-- MPC controller node for path tracking -->
-        <node name="mpc_controller_node" pkg="gem_navigator" type="mpc_controller.py"/> 
+        <node name="mpc_controller_node" pkg="gem_navigator" type="mpc_controller.py" output="screen"/> 
+
+        <!-- TF broadcaster for the transform between world and vehicle -->
+        <node name="turtle1_tf_broadcaster" pkg="gem_navigator" type="tf_broadcaster" args="base_footprint" />
 
     </group> 
 

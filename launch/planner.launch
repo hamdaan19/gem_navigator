@@ -1,0 +1,21 @@
+<launch>
+  <arg name="robot_name" default="gem_navigator" />
+  <arg name="voxel_size" default="0.05" />
+  <arg name="voxels_per_side" default="16" />
+  <arg name="world_frame" default="world" />
+  <arg name="sensor_frame" default="gem/velodyne"/>
+  <group ns="$(arg robot_name)">
+
+    <node name="my_voxblox_planner" pkg="gem_navigator" type="map_query" output="screen" args="-alsologtostderr">
+      <remap from="/gem/base_footprint/odom" to="great_estimator/odometry" />
+      <remap from="my_voxblox_planner/esdf_map_in" to="esdf_map" />
+      <param name="tsdf_voxel_size" value="$(arg voxel_size)" />
+      <param name="tsdf_voxels_per_side" value="$(arg voxels_per_side)" />
+      <param name="update_mesh_every_n_sec" value="0.0" />
+      <param name="world_frame" value="$(arg world_frame)" />
+      <param name="sensor_frame" value="$(arg sensor_frame)" />
+      <param name="use_tf_transforms" value="true" />
+    </node>
+
+  </group>
+</launch>

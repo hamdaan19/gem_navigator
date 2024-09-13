@@ -1,8 +1,12 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(gem_navigator)
 
-## Compile as C++11, supported in ROS Kinetic and newer
+set(CMAKE_BUILD_TYPE Release)
+
+## Compile as C++14, supported in ROS Noetic and newer
 # add_compile_options(-std=c++11)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -21,7 +25,19 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   sensor_msgs
   visualization_msgs
+  tf
+  message_generation
 )
+
+find_package(Eigen3 3.3.7 REQUIRED)
+find_package(PCL 1.3 REQUIRED)
+find_package(voxblox)
+find_package(voxblox_msgs)
+find_package(voxblox_ros)
+
+link_directories(${PCL_LIBRARY_DIRS})
+
+add_definitions(${PCL_DEFINITIONS})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -63,12 +79,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Message2.msg
 # )
 
-## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+# Generate services in the 'srv' folder
+add_service_files(
+  FILES
+  QueryMap.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -77,11 +92,11 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action2.action
 # )
 
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   gem_lane_detect_msgs#   geometry_msgs#   nav_msgs#   sensor_msgs#   visualization_msgs
-# )
+# Generate added messages and services with any dependencies listed here
+generate_messages(
+  DEPENDENCIES
+  gem_lane_detect_msgs#   geometry_msgs#   nav_msgs#   sensor_msgs#   visualization_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -127,7 +142,9 @@ catkin_package(
 ## Your package locations should be listed before other locations
 include_directories(
 # include
+  ${PROJECT_SOURCE_DIR}/include
   ${catkin_INCLUDE_DIRS}
+  ${voxblox_ros_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -143,7 +160,38 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/gem_navigator_node.cpp)
+# add_executable(
+#     perception
+#     src/perception.cc
+# )
+# target_link_libraries(
+#   perception
+#   ${PCL_LIBRARIES}
+#   ${catkin_LIBRARIES}
+#   ${EIGEN3_LIBS}
+# )
+
+add_executable(
+  map_query 
+  src/map_query.cc
+)
+
+target_link_libraries(
+  map_query
+  ${catkin_LIBRARIES}
+  ${voxblox_ros_LIBRARIES}
+  ${EIGEN3_LIBS}
+)
+
+add_executable(
+  tf_broadcaster 
+  src/tf_broadcaster.cc
+)
+
+target_link_libraries(
+  tf_broadcaster
+  ${catkin_LIBRARIES}
+)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
