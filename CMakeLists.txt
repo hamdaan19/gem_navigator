@@ -30,14 +30,14 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 find_package(Eigen3 3.3.7 REQUIRED)
-find_package(PCL 1.3 REQUIRED)
-find_package(voxblox)
-find_package(voxblox_msgs)
-find_package(voxblox_ros)
+# find_package(PCL 1.3 REQUIRED)
+# find_package(voxblox)
+# find_package(voxblox_msgs)
+# find_package(voxblox_ros)
 
-link_directories(${PCL_LIBRARY_DIRS})
+# link_directories(${PCL_LIBRARY_DIRS})
 
-add_definitions(${PCL_DEFINITIONS})
+# add_definitions(${PCL_DEFINITIONS})
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -144,7 +144,7 @@ include_directories(
 # include
   ${PROJECT_SOURCE_DIR}/include
   ${catkin_INCLUDE_DIRS}
-  ${voxblox_ros_INCLUDE_DIRS}
+  # ${voxblox_ros_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -171,17 +171,17 @@ include_directories(
 #   ${EIGEN3_LIBS}
 # )
 
-add_executable(
-  map_query 
-  src/map_query.cc
-)
+# add_executable(
+#   map_query 
+#   src/map_query.cc
+# )
 
-target_link_libraries(
-  map_query
-  ${catkin_LIBRARIES}
-  ${voxblox_ros_LIBRARIES}
-  ${EIGEN3_LIBS}
-)
+# target_link_libraries(
+#   map_query
+#   ${catkin_LIBRARIES}
+#   ${voxblox_ros_LIBRARIES}
+#   ${EIGEN3_LIBS}
+# )
 
 add_executable(
   tf_broadcaster 
