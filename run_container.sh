@@ -1,0 +1,7 @@
+docker run -it -dt --name gem_nav_container \
+  --env="DISPLAY" --net host \
+  -v /etc/localtime:/etc/localtime:ro \
+  -v /etc/timezone:/etc/timezone:ro \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  -v /home/hamdaan/ROS/gem_ws:/home/gem_ws \
+  gem_navigator_image /bin/zsh
