@@ -68,7 +68,12 @@ RUN mkdir -m 0700 /tmp/runtime-root && \
     libgl1-mesa-glx
 ENV XDG_RUNTIME_DIR=/tmp/runtime-root
 ENV DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
-ENV LIBGL_ALWAYS_SOFTWARE=1
+# ENV LIBGL_ALWAYS_SOFTWARE=1
+
+RUN echo "source /ros_entrypoint.sh" >> /root/.zshrc
+RUN echo "source /ros_entrypoint.sh" >> /root/.bashrc
+RUN echo "source ~/gem_ws/devel/setup.zsh" >> /root/.zshrc
+RUN echo "source ~/gem_ws/devel/setup.bash" >> /root/.bashrc
 
 WORKDIR /
 CMD ["/bin/zsh"]
