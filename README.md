@@ -1,4 +1,5 @@
-# Model Predictive Control for Path Tracking and Obstacle Avoidance of a Car
+# MPC for Path Tracking and Obstacle Avoidance
+## Note: README under construction
 
 ## Initial Steps
 ```bash
@@ -30,7 +31,7 @@ source /home/gem_ws/devel/setup.zsh
 ```
 
 ### Running the simulation 
-The following `roslaunch` command needs to be run inside the container after building the catkin workspace. The file `navigator.launch` creates a world with static obstacles, spawns the car, runs the necessary nodes for path tracking, trajectory planning, etc. 
+The following `roslaunch` command needs to be run inside the container after building the catkin workspace. The file `navigator.launch` creates a world with obstacles, spawns the car, runs the necessary nodes for path tracking, trajectory planning, etc. 
 ```
 roslaunch gem_navigator navigator.launch
 ```
@@ -41,3 +42,7 @@ rosrun gem_navigator path_publisher.py
 After running the above command, the car will begin to move. 
 
 ## ROS nodes and Topics
+### Nodes
+| Sl. no. | Name | Description | Subscribes from | Publishes to |
+| --- | --- | --- | --- | --- |
+| 1. | mpc_controller.py | Contains class for MPC's implementation | /reference_path (`nav_msgs/Path`), closest_obstacle_location (`geometry_msgs/Point`), /gem/base_footprint/odom (`nav_msgs/Odometry`) | /gem/ackermann_cmd (`ackermann_msgs/AckermannDrive`) |
