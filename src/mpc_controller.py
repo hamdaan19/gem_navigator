@@ -46,13 +46,11 @@ class MPC_Controller():
         self.configure_controller()
 
     def tvp_function(self, t): 
-        print("In tvp_function, t: ", t)
+
         idx = int(t/self.t_step)
         for k in range(self.n_horizon+1): 
             self.tvp_template['_tvp', k, 'reference_path_pos_x'] = self.path.poses[idx+k].pose.position.x
             self.tvp_template['_tvp', k, 'reference_path_pos_y'] = self.path.poses[idx+k].pose.position.y
-            print("k: ", k, "idx: ", idx, "x_ref: ", self.path.poses[k+idx].pose.position.x, "y_ref: ", self.path.poses[k+idx].pose.position.y)
-
             quat = (
                 self.path.poses[k+idx].pose.orientation.x,
                 self.path.poses[k+idx].pose.orientation.y,
@@ -66,6 +64,10 @@ class MPC_Controller():
             #     yaw += 2*math.pi
 
             self.tvp_template['_tvp', k, 'reference_path_theta'] = yaw
+
+            # Setting obstacle information 
+            self.tvp_template['_tvp', k, 'obstacle_1_pos', 0] = 149.434831
+            self.tvp_template['_tvp', k, 'obstacle_1_pos', 1] = 112.518619
 
         return self.tvp_template
 
@@ -88,6 +90,8 @@ class MPC_Controller():
         reference_path_pos_x = self.model.set_variable(var_type='_tvp', var_name='reference_path_pos_x')
         reference_path_pos_y = self.model.set_variable(var_type='_tvp', var_name='reference_path_pos_y')
         reference_path_theta = self.model.set_variable(var_type='_tvp', var_name='reference_path_theta')
+        obstacle_pos_1_x = self.model.set_variable(var_type="_tvp", var_name='obstacle_1_pos', shape=(2,1))
+        # obstacle_pos_y = self.model.set_variable(var_type="_tvp", var_name='obstacle_pos_y', shape=(1,1))
 
         # Setting the RHS for the differential equation x_dot = f(x,u)
         self.model.set_rhs('pos_x', vel*cos(theta))
@@ -104,22 +108,29 @@ class MPC_Controller():
         #########################################
         self.mpc = do_mpc.controller.MPC(self.model)
 
-        setup_mpc = {
-            'n_horizon': self.n_horizon,
-            't_step': self.t_step,
-            'n_robust': 0,
-            'store_full_solution': True,
-        }
-        self.mpc.set_param(**setup_mpc)
+        # Solver Settings
+        self.mpc.settings.n_horizon = self.n_horizon
+        self.mpc.settings.t_step = self.t_step
+        self.mpc.settings.n_robust = 0
+        self.mpc.settings.store_full_solution = True
+
+        # Suppress IPOPT output
+        self.mpc.settings.supress_ipopt_output()
 
         # Setting the objective function
         lagrange_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 
-        meyer_term = 1e-3*(self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2
+        meyer_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 + 1e-3*(self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2
         self.mpc.set_rterm (
             alpha=1,
             throttle=1e-2
         )
         self.mpc.set_objective(lterm=lagrange_term, mterm=meyer_term)
+
+        # Set scaling for state variables
+        # self.mpc.scaling['_x', 'pos_x'] = 1.0
+        # self.mpc.scaling['_x', 'pos_y'] = 1.0
+        # self.mpc.scaling['_x', 'vel'] = 1.0
+        # self.mpc.scaling['_x', 'theta'] = 1e-3
 
         self.tvp_template = self.mpc.get_tvp_template()
 
@@ -135,6 +146,11 @@ class MPC_Controller():
         # Steering angle limits
         self.mpc.bounds['lower','_u', 'alpha'] = -math.pi/16
         self.mpc.bounds['upper','_u', 'alpha'] = math.pi/16
+
+        # Setting Constraints for obstacle avoidance
+        obstacle_constraint_expr = -1*(self.model.x['pos_x'] - self.model.tvp['obstacle_1_pos', 0])**2 - (self.model.x['pos_y'] - self.model.tvp['obstacle_1_pos', 1])**2
+
+        self.mpc.set_nl_cons('T_R_UB', obstacle_constraint_expr, ub=-3.0, soft_constraint=True, penalty_term_cons=1e9)
         
         self.mpc.setup()
 
@@ -149,7 +165,48 @@ def simulator(u, x, t_step=0.1):
     x_next = x + delta_x*t_step
     return x_next
 
+def get_points_from_path(path):
+    points = np.array([[path.poses[0].pose.position.x, path.poses[0].pose.position.y]])
+    for i in range(1, len(path.poses)):
+        pt = np.array([[path.poses[i].pose.position.x, path.poses[i].pose.position.y]])
+        points = np.vstack((points, pt))
+
+    return points
+
+def get_crosstrack_error(points, x, y):
+    q_pt = np.array([x,y]).reshape(-1,1)
+    distances = []
+    for idx in range(0, points.shape[0]-1):
+        pt = points[idx].reshape(-1,1)        
+
+        dist = np.linalg.norm(q_pt-pt)
+        distances.append(dist)
+
+    min_idx = np.argmin(distances)
+    pt1 = points[min_idx]
+    pt2 = points[min_idx+1]
+
+    x1 = pt1[0]
+    y1 = pt1[1]
+    x2 = pt2[0]
+    y2 = pt2[1]
+
+    
+    m = (y2-y1)/(x2-x1)
+    c = y1 - m*x1
+        
+    min_dist = min(distances)
+
+    if (y >= m*x+c):
+        return min_dist
+    else:
+        return -1*min_dist
+
+
+
 def callback(data):
+    path_points = get_points_from_path(data)
+
     mpc = MPC_Controller(data, n_horizon=N_HORIZON, t_step=T_STEP)
     # pos x, pos y, velocity, theta (yaw)
     x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
@@ -164,7 +221,6 @@ def callback(data):
     
     rate = rospy.Rate(int(10/T_STEP))
     for i in range(n_reference_points - N_HORIZON): 
-        x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
         u0 = mpc.mpc.make_step(x0)
         # x0 = simulator(u0, x0)
 
@@ -186,6 +242,13 @@ def callback(data):
 
             # Letting time elapse
             rate.sleep()
+
+        # Calculating Root Mean Squared Deviation
+        x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
+        dist = math.sqrt( (data.poses[i].pose.position.x - cb.state_position_x)**2 + (data.poses[i].pose.position.y - cb.state_position_y)**2 )
+        print("Dist: ", dist, "CTE: ", get_crosstrack_error(path_points, cb.state_position_x, cb.state_position_y))
+
+
 
     print("exiting...")
 
