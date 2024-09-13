@@ -52,7 +52,7 @@ def plan_trajectory(way_pts):
         i += 1
 
     ################################################################################
-    vel_limits, accel_limits = np.array([2.5, 2.5]), np.r_[1.5,1.5]
+    vel_limits, accel_limits = np.array([2.0, 2.0]), np.r_[1.5,1.5]
     path_scalars = np.asarray(p_scalars)
 
     path = ta.SplineInterpolator(path_scalars, way_pts, bc_type="clamped")

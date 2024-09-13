@@ -9,7 +9,10 @@ from casadi import *
 import rospy
 import rospkg
 from nav_msgs.msg import Path, Odometry
+from geometry_msgs.msg import Point
 from tf.transformations import euler_from_quaternion
+
+import matplotlib.pyplot as plt
 
 import math
 
@@ -66,8 +69,8 @@ class MPC_Controller():
             self.tvp_template['_tvp', k, 'reference_path_theta'] = yaw
 
             # Setting obstacle information 
-            self.tvp_template['_tvp', k, 'obstacle_1_pos', 0] = 149.434831
-            self.tvp_template['_tvp', k, 'obstacle_1_pos', 1] = 112.518619
+            self.tvp_template['_tvp', k, 'obstacle_1_pos', 0] = cb.obs_x
+            self.tvp_template['_tvp', k, 'obstacle_1_pos', 1] = cb.obs_y
 
         return self.tvp_template
 
@@ -118,7 +121,7 @@ class MPC_Controller():
         self.mpc.settings.supress_ipopt_output()
 
         # Setting the objective function
-        lagrange_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 
+        lagrange_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 + 1e-6*(self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2 
         meyer_term = 1.0*(self.model.tvp['reference_path_pos_x']-self.model.x['pos_x'])**2 + 1.0*(self.model.tvp['reference_path_pos_y']-self.model.x['pos_y'])**2 + 1e-3*(self.model.tvp['reference_path_theta']-(self.model.x['theta']))**2
         self.mpc.set_rterm (
             alpha=1,
@@ -150,7 +153,7 @@ class MPC_Controller():
         # Setting Constraints for obstacle avoidance
         obstacle_constraint_expr = -1*(self.model.x['pos_x'] - self.model.tvp['obstacle_1_pos', 0])**2 - (self.model.x['pos_y'] - self.model.tvp['obstacle_1_pos', 1])**2
 
-        self.mpc.set_nl_cons('T_R_UB', obstacle_constraint_expr, ub=-3.0, soft_constraint=True, penalty_term_cons=1e9)
+        self.mpc.set_nl_cons('T_R_UB', obstacle_constraint_expr, ub=-4.0, soft_constraint=True, penalty_term_cons=1e9)
         
         self.mpc.setup()
 
@@ -218,6 +221,9 @@ def callback(data):
     mpc.mpc.set_initial_guess()
 
     n_reference_points = len(data.poses)
+
+    cte_array = []
+    time_step_arr = []
     
     rate = rospy.Rate(int(10/T_STEP))
     for i in range(n_reference_points - N_HORIZON): 
@@ -245,11 +251,20 @@ def callback(data):
 
         # Calculating Root Mean Squared Deviation
         x0 = np.array([cb.state_position_x, cb.state_position_y, cb.state_velocity, cb.state_orientation]).reshape(-1,1)
-        dist = math.sqrt( (data.poses[i].pose.position.x - cb.state_position_x)**2 + (data.poses[i].pose.position.y - cb.state_position_y)**2 )
-        print("Dist: ", dist, "CTE: ", get_crosstrack_error(path_points, cb.state_position_x, cb.state_position_y))
+        # dist = math.sqrt( (data.poses[i].pose.position.x - cb.state_position_x)**2 + (data.poses[i].pose.position.y - cb.state_position_y)**2 )
+        cte = get_crosstrack_error(path_points, cb.state_position_x, cb.state_position_y)
+        print("Crosstrack Error: ", get_crosstrack_error(path_points, cb.state_position_x, cb.state_position_y))
+        cte_array.append(cte)
+        time_step_arr.append(i)
 
+    cte_arr_np = np.array(cte_array)
+    time_step_arr_np = np.array(time_step_arr)
 
-
+    plt.plot(time_step_arr_np, cte_arr_np)
+    plt.xlabel("Time Step")
+    plt.ylabel("Crosstrack Error")
+    plt.show()
+    
     print("exiting...")
 
 
@@ -259,6 +274,7 @@ if __name__ == "__main__":
 
     reference_path_sub = rospy.Subscriber("/reference_path", Path, callback, queue_size=10)
     state_sub = rospy.Subscriber("/gem/base_footprint/odom", Odometry, cb.state_callback, queue_size=10)
+    obstacle_sub = rospy.Subscriber("/closest_obstacle_location", Point, cb.obstacle_callback, queue_size=10)
     ackermann_pub = rospy.Publisher('/gem/ackermann_cmd', AckermannDrive, queue_size=1)
 
     rospy.spin()

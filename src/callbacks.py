@@ -28,3 +28,8 @@ class Callback():
         vel_y = data.twist.twist.linear.y
 
         self.state_velocity = math.sqrt(vel_x**2 + vel_y**2)
+
+    def obstacle_callback(self, data):
+        self.obs_x = data.x
+        self.obs_y = data.y
+        self.obs_z = data.z

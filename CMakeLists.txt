@@ -184,12 +184,33 @@ include_directories(
 # )
 
 add_executable(
+  esdf_simulator 
+  src/esdf_simulator.cc
+)
+
+target_link_libraries(
+  esdf_simulator
+  ${catkin_LIBRARIES}
+  ${EIGEN3_LIBS}
+)
+
+add_executable(
   tf_broadcaster 
   src/tf_broadcaster.cc
 )
 
 target_link_libraries(
   tf_broadcaster
+  ${catkin_LIBRARIES}
+)
+
+add_executable(
+  traj_vis 
+  src/trajectory_visualizer.cc
+)
+
+target_link_libraries(
+  traj_vis
   ${catkin_LIBRARIES}
 )
 

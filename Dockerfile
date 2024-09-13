@@ -60,6 +60,16 @@ RUN pip3 install do-mpc[full]
 # Install TOPP-RA for trajectory planning
 RUN pip3 install toppra
 
+RUN apt-get install -y python3-tk
+
+WORKDIR /software
+
+# Installing Eigen
+RUN git clone https://gitlab.com/libeigen/eigen.git --branch 3.4.0 --single-branch && \ 
+    cd eigen && mkdir build && cd build && \
+    cmake .. -DEIGEN_DEFAULT_TO_ROW_MAJOR=$ROW_MAJOR_DEFAULT && \
+    sudo make install && cd ../..
+
 # Configuring Access to Displays
 RUN mkdir -m 0700 /tmp/runtime-root && \
     apt-get install -y \
@@ -70,8 +80,11 @@ ENV XDG_RUNTIME_DIR=/tmp/runtime-root
 ENV DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus
 # ENV LIBGL_ALWAYS_SOFTWARE=1
 
-RUN echo "source /ros_entrypoint.sh" >> /root/.bashrc
-RUN echo "source /home/gem_ws/devel/setup.bash" >> /root/.bashrc
+# RUN echo "source /ros_entrypoint.sh" >> /root/.bashrc
+# RUN echo "source /home/gem_ws/devel/setup.bash" >> /root/.bashrc
+
+RUN echo "source /opt/ros/noetic/setup.zsh" >> /root/.zshrc
+RUN echo "source /home/gem_ws/devel/setup.zsh" >> /root/.zshrc
 
 WORKDIR /
 CMD ["/bin/zsh"]

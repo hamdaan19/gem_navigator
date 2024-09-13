@@ -4,6 +4,11 @@
     <!-- Launching GEM Simulation -->
     <include file="$(find gem_gazebo)/launch/gem_gazebo_rviz.launch">
         <arg name="velodyne_points" value="true"/>
+        <arg name="world_name" default="$(find gem_gazebo)/worlds/simple_track_green_with_obstacles.world"/>
+        <!-- Vehicle Pose -->
+        <!-- <arg name="x" default="-50"/>
+        <arg name="y" default="-2.0"/>
+        <arg name="z" default="0.05"/> -->
     </include>
 
     <node name="velodyne_link" pkg="tf" type="static_transform_publisher" args="0 0 0 0 0 0 /velodyne gem/velodyne 1000"/>
@@ -21,6 +26,12 @@
 
         <!-- TF broadcaster for the transform between world and vehicle -->
         <node name="turtle1_tf_broadcaster" pkg="gem_navigator" type="tf_broadcaster" args="base_footprint" />
+
+        <!-- Euclidean Signed Distance Field simulator -->
+        <node name="esdf_sim_node" pkg="gem_navigator" type="esdf_simulator" />
+
+        <!-- Actual and Desired Path Visualization node -->
+        <node name="path_vis_node" pkg="gem_navigator" type="traj_vis" />
 
     </group> 
 
