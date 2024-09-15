@@ -41,8 +41,14 @@ rosrun gem_navigator path_publisher.py
 ```
 After running the above command, the car will begin to move. 
 
-## ROS nodes and Topics
-### Nodes
-| Sl. no. | Name | Description | Subscribes from | Publishes to |
+## ROS Nodes Description 
+| Sl. no. | Name | Description | Topics Subscribed | Topics Published |
 | --- | --- | --- | --- | --- |
 | 1. | mpc_controller.py | Contains class for MPC's implementation | /reference_path (`nav_msgs/Path`), closest_obstacle_location (`geometry_msgs/Point`), /gem/base_footprint/odom (`nav_msgs/Odometry`) | /gem/ackermann_cmd (`ackermann_msgs/AckermannDrive`) |
+| 2. | time_optimal_trajectory_planner.py | Plans a kino-dynamically feasible trajectory with given set of waypoints | /path_waypoints (`geometry_msgs/PoseArray`) | /reference_path (`nav_msgs/Path`) | 
+| 3. | path_publisher.py | Publishes a set of waypoints | - | /path_waypoints (`geometry_msgs/PoseArray`) |
+| 4. | esdf_simulator.cc | A simulator for an ESDF. Broadcasts the location of the closest obstacle to the robot's state | /gem/base_footprint/odom (`nav_msgs/Odometry`) | /closest_obstacle_location (`geometry_msgs/Point`) |
+
+## Parameters
+* The parameters for the MPC controller are contained in `parameters.yaml` which is uploaded to the ROS Parameter Server in `launch/navigator.launch`. 
+* Waypoints are contained `waypoints/wps.csv`. 
