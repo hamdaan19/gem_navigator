@@ -54,6 +54,7 @@ After running the above command, the car will begin to move.
 * Waypoints are contained `waypoints/wps.csv`. 
 
 ## Dynamic Model 
-![image](docs/car_dynamics.png)
+<!-- ![image](docs/car_dynamics.png) -->
+<img src="docs/car_dynamics.png" alt="dynamical model" style="width:700px;"/>
 
 ## Optimization Problem
