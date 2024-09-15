@@ -57,4 +57,5 @@ After running the above command, the car will begin to move.
 <!-- ![image](docs/car_dynamics.png) -->
 <img src="docs/car_dynamics.png" alt="dynamical model" style="width:700px;"/>
 
-## Optimization Problem
+## Optimization Problem Definition for MPC
+<img src="docs/mpc_objective_function.png" alt="MPC optimization problem" style="width:700px;"/>
