@@ -52,3 +52,8 @@ After running the above command, the car will begin to move.
 ## Parameters
 * The parameters for the MPC controller are contained in `parameters.yaml` which is uploaded to the ROS Parameter Server in `launch/navigator.launch`. 
 * Waypoints are contained `waypoints/wps.csv`. 
+
+## Dynamic Model 
+![image](docs/car_dynamics.png)
+
+## Optimization Problem
