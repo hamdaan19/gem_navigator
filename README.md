@@ -1,5 +1,8 @@
 # MPC for Path Tracking and Obstacle Avoidance
 ## Note: README under construction
+This repository contains code for path tracking of an ackermann-based car using Model Predictive Control (MPC). The MPC controller is designed to take obstacle locations in the surroundings as input and control the vehicle such that it avoids obstacle as well as tracks the reference path. The details on the how the MPC controller was implemented are documented below. The algorithm is simulated in Gazebo and can be directly run from inside a docker container by following the steps mentioed in sections below.
+
+The Gazebo world and model were derived from [Polaris GEM e2 Simulator](https://gitlab.engr.illinois.edu/gemillins/POLARIS_GEM_e2/-/tree/main). A modified world with obstacles is in [hamdaan19/POLARIS_GEM_e2](https://github.com/hamdaan19/POLARIS_GEM_e2) which is a forked repository. 
 
 <img src="docs/animation.gif" alt="A GIF showcasing obstacle avoidance" style="width:600px;"/>
 
@@ -71,3 +74,6 @@ In the equation below, epsilon is a non-negative slack variable with an upper bo
 <img src="docs/soft_constaints.png" alt="MPC optimization problem" style="width:600px;"/>
 
 Here d is the radius of the circle surrounding the obstacle. The above (soft) constraint ensures that the controller will not allow the euclidean distance between the vehicle and the center of the obstacle to become lesser than d (with the maximum possible violation of epsilon_m). 
+
+## Contributer
+* [Mohammad Hamdaan](https://www.linkedin.com/in/mhamdaan/)
