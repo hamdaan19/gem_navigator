@@ -153,7 +153,7 @@ class MPC_Controller():
         # Setting Constraints for obstacle avoidance
         obstacle_constraint_expr = -1*(self.model.x['pos_x'] - self.model.tvp['obstacle_1_pos', 0])**2 - (self.model.x['pos_y'] - self.model.tvp['obstacle_1_pos', 1])**2
 
-        self.mpc.set_nl_cons('T_R_UB', obstacle_constraint_expr, ub=-4.0, soft_constraint=True, penalty_term_cons=1e9)
+        self.mpc.set_nl_cons('T_R_UB', obstacle_constraint_expr, ub=-4.0, soft_constraint=True, penalty_term_cons=1e9, maximum_violation=0.1)
         
         self.mpc.setup()
 
