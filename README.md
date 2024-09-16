@@ -1,6 +1,8 @@
 # MPC for Path Tracking and Obstacle Avoidance
 ## Note: README under construction
 
+<img src="docs/animation.gif" alt="A GIF showcasing obstacle avoidance" style="width:600px;"/>
+
 ## Initial Steps
 ```bash
 # Create a catkin workspace
