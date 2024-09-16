@@ -63,4 +63,5 @@ After running the above command, the car will begin to move.
 ### Adding Soft constraints to the Optimization Problem
 In the equation below, epsilon is a non-negative slack variable with an upper bound (which determines the maximum violation of the constraint). Epsilon multiplied by a large penalty is added to the objective function. 
 <img src="docs/soft_constaints.png" alt="MPC optimization problem" style="width:600px;"/>
+
 Here d is the radius of the circle surrounding the obstacle. The above (soft) constraint ensures that the controller will not allow the euclidean distance between the vehicle and the center of the obstacle to become lesser than d (with the maximum possible violation of epsilon_m). 
