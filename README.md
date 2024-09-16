@@ -11,6 +11,10 @@ git clone https://github.com/hamdaan19/gem_navigator.git
 git clone https://github.com/hamdaan19/POLARIS_GEM_e2.git
 ```
 
+## Dependencies
+1. [Time-Optimal Path Parameterization based on Reachability Analysis (TOPP-RA)](https://github.com/hungpham2511/toppra) | [Paper](https://arxiv.org/abs/1707.07239)
+2. [Do-MPC - Robust Optimal Control Toolbox](https://www.do-mpc.com/en/latest/)
+
 ## Run with Docker
 ### Build the Docker Image
 ```
